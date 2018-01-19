@@ -43,7 +43,7 @@ class pascal_voc(imdb):
     self._image_ext = '.jpg'
     self._image_index = self._load_image_set_index()
     # Default to roidb handler
-    self._roidb_handler = self.gt_roidb
+    self._roidb_handler = self.gt_roidb  ## self._roidb_handler is another name of the function self.gt_roidb. As defined in the imdb.py ,when using the self.roidb, roidb=self._roidb_handler()
     self._salt = str(uuid.uuid4())
     self._comp_id = 'comp4'
 
@@ -93,7 +93,7 @@ class pascal_voc(imdb):
     """
     Return the default path where PASCAL VOC is expected to be installed.
     """
-    return os.path.join(cfg.DATA_DIR, 'VOCdevkit' + self._year)
+    return os.path.join(cfg.DATA_DIR, 'VOCdevkit' + self._year)  #__C.DATA_DIR = osp.abspath(osp.join(__C.ROOT_DIR, 'data'))
 
   def gt_roidb(self):
     """

@@ -90,7 +90,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
 
   bbox_inside_weights = np.zeros((len(inds_inside), 4), dtype=np.float32)
   # only the positive ones have regression targets
-  bbox_inside_weights[labels == 1, :] = np.array(cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS)
+  bbox_inside_weights[labels == 1, :] = np.array(cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS)  # __C.TRAIN.RPN_BBOX_INSIDE_WEIGHTS = (1.0, 1.0, 1.0, 1.0)
 
   bbox_outside_weights = np.zeros((len(inds_inside), 4), dtype=np.float32)
   if cfg.TRAIN.RPN_POSITIVE_WEIGHT < 0:

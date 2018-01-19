@@ -49,7 +49,7 @@ class SolverWrapper(object):
       os.makedirs(self.output_dir)
 
     # Store the model snapshot
-    filename = cfg.TRAIN.SNAPSHOT_PREFIX + '_iter_{:d}'.format(iter) + '.ckpt'
+    filename = cfg.TRAIN.SNAPSHOT_PREFIX + '_iter_{:d}'.format(iter) + '.ckpt' ##__C.TRAIN.SNAPSHOT_PREFIX = 'res101_faster_rcnn'
     filename = os.path.join(self.output_dir, filename)
     self.saver.save(sess, filename)
     print('Wrote snapshot to: {:s}'.format(filename))
@@ -95,8 +95,8 @@ class SolverWrapper(object):
       last_snapshot_iter = pickle.load(fid)
 
       np.random.set_state(st0)
-      self.data_layer._cur = cur
-      self.data_layer._perm = perm
+      # self.data_layer._cur = cur
+      # self.data_layer._perm = perm
       self.data_layer_val._cur = cur_val
       self.data_layer_val._perm = perm_val
 
@@ -153,12 +153,12 @@ class SolverWrapper(object):
     return lr, train_op
 
   def find_previous(self):
-    sfiles = os.path.join(self.output_dir, cfg.TRAIN.SNAPSHOT_PREFIX + '_iter_*.ckpt.meta')
+    sfiles = os.path.join(self.output_dir, cfg.TRAIN.SNAPSHOT_PREFIX + '_iter_*.ckpt.meta') ##__C.TRAIN.SNAPSHOT_PREFIX = 'res101_faster_rcnn'
     sfiles = glob.glob(sfiles)
     sfiles.sort(key=os.path.getmtime)
     # Get the snapshot name in TensorFlow
     redfiles = []
-    for stepsize in cfg.TRAIN.STEPSIZE:
+    for stepsize in cfg.TRAIN.STEPSIZE:  ##__C.TRAIN.STEPSIZE = [30000]
       redfiles.append(os.path.join(self.output_dir, 
                       cfg.TRAIN.SNAPSHOT_PREFIX + '_iter_{:d}.ckpt.meta'.format(stepsize+1)))
     sfiles = [ss.replace('.meta', '') for ss in sfiles if ss not in redfiles]
@@ -207,15 +207,19 @@ class SolverWrapper(object):
     ss_paths = [sfile]
     # Restore model from snapshots
     last_snapshot_iter = self.from_snapshot(sess, sfile, nfile)
+    print('the iters now is %s' %last_snapshot_iter)
+    last_snapshot_iter -= 10000
+    print('the iters after delete is %s' % last_snapshot_iter)
     # Set the learning rate
     rate = cfg.TRAIN.LEARNING_RATE
     stepsizes = []
-    for stepsize in cfg.TRAIN.STEPSIZE:
+    for stepsize in cfg.TRAIN.STEPSIZE: ##__C.TRAIN.STEPSIZE = [30000]
       if last_snapshot_iter > stepsize:
         rate *= cfg.TRAIN.GAMMA
+        print('change')
       else:
         stepsizes.append(stepsize)
-
+    #print('the rate is %f '%rate)
     return rate, last_snapshot_iter, stepsizes, np_paths, ss_paths
 
   def remove_snapshot(self, np_paths, ss_paths):
@@ -255,8 +259,11 @@ class SolverWrapper(object):
       rate, last_snapshot_iter, stepsizes, np_paths, ss_paths = self.initialize(sess)
     else:
       rate, last_snapshot_iter, stepsizes, np_paths, ss_paths = self.restore(sess, 
-                                                                            str(sfiles[-1]), 
-                                                                            str(nfiles[-1]))
+                                                                            str(sfiles[-1]),
+                                                                           str(nfiles[-1]))
+      #last_snapshot_iter -= 30000   for retrain the model
+      #rate /= cfg.TRAIN.GAMMA
+    #print('the rate is %f' %rate)
     timer = Timer()
     iter = last_snapshot_iter + 1
     last_summary_time = time.time()
@@ -264,21 +271,25 @@ class SolverWrapper(object):
     stepsizes.append(max_iters)
     stepsizes.reverse()
     next_stepsize = stepsizes.pop()
+    count = 1 # for change the lr
     while iter < max_iters + 1:
+      if count == 1:
+        sess.run(tf.assign(lr, rate*0.01))
+      count += 1
       # Learning rate
       if iter == next_stepsize + 1:
         # Add snapshot here before reducing the learning rate
         self.snapshot(sess, iter)
         rate *= cfg.TRAIN.GAMMA
-        sess.run(tf.assign(lr, rate))
+        sess.run(tf.assign(lr, rate*0.01))
         next_stepsize = stepsizes.pop()
-
+        print('change')
       timer.tic()
       # Get training data, one batch at a time
       blobs = self.data_layer.forward()
 
       now = time.time()
-      if iter == 1 or now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
+      if iter == 1 or now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL: #__C.TRAIN.SUMMARY_INTERVAL = 180
         # Compute the graph with summary
         rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
           self.net.train_step_with_summary(sess, blobs, train_op)
@@ -288,21 +299,23 @@ class SolverWrapper(object):
         summary_val = self.net.get_summary(sess, blobs_val)
         self.valwriter.add_summary(summary_val, float(iter))
         last_summary_time = now
+        #print('with summary')
       else:
         # Compute the graph without summary
         rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
           self.net.train_step(sess, blobs, train_op)
+        #print('without summary')
       timer.toc()
-
+     # print('the lr now is %f '%lr.eval())
       # Display training information
-      if iter % (cfg.TRAIN.DISPLAY) == 0:
+      if iter % (cfg.TRAIN.DISPLAY) == 0:  ##__C.TRAIN.DISPLAY = 10  default is 10 but for res101 is DISPLAY: 20
         print('iter: %d / %d, total loss: %.6f\n >>> rpn_loss_cls: %.6f\n '
               '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
               (iter, max_iters, total_loss, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
         print('speed: {:.3f}s / iter'.format(timer.average_time))
 
       # Snapshotting
-      if iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
+      if iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:  # __C.TRAIN.SNAPSHOT_ITERS = 5000
         last_snapshot_iter = iter
         ss_path, np_path = self.snapshot(sess, iter)
         np_paths.append(np_path)
@@ -310,7 +323,7 @@ class SolverWrapper(object):
 
         # Remove the old snapshots if there are too many
         if len(np_paths) > cfg.TRAIN.SNAPSHOT_KEPT:
-          self.remove_snapshot(np_paths, ss_paths)
+          self.remove_snapshot(np_paths, ss_paths)  ##__C.TRAIN.SNAPSHOT_KEPT = 3
 
       iter += 1
 

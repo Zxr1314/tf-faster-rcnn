@@ -146,8 +146,8 @@ class Network(object):
 
       rpn_labels.set_shape([1, 1, None, None])
       rpn_bbox_targets.set_shape([1, None, None, self._num_anchors * 4])
-      rpn_bbox_inside_weights.set_shape([1, None, None, self._num_anchors * 4])
-      rpn_bbox_outside_weights.set_shape([1, None, None, self._num_anchors * 4])
+      rpn_bbox_inside_weights.set_shape([1, None, None, self._num_anchors * 4])         # inside_weights is the p* before the rpnbox loss for choosing boxes to calculate loss whose label>1
+      rpn_bbox_outside_weights.set_shape([1, None, None, self._num_anchors * 4])        # outside_weights is the regulation, lambda
 
       rpn_labels = tf.to_int32(rpn_labels, name="to_int32")
       self._anchor_targets['rpn_labels'] = rpn_labels
@@ -394,8 +394,8 @@ class Network(object):
       self._train_summaries.append(var)
 
     if testing:
-      stds = np.tile(np.array(cfg.TRAIN.BBOX_NORMALIZE_STDS), (self._num_classes))
-      means = np.tile(np.array(cfg.TRAIN.BBOX_NORMALIZE_MEANS), (self._num_classes))
+      stds = np.tile(np.array(cfg.TRAIN.BBOX_NORMALIZE_STDS), (self._num_classes))   ##__C.TRAIN.BBOX_NORMALIZE_MEANS = (0.0, 0.0, 0.0, 0.0)
+      means = np.tile(np.array(cfg.TRAIN.BBOX_NORMALIZE_MEANS), (self._num_classes))  ##__C.TRAIN.BBOX_NORMALIZE_STDS = (0.1, 0.1, 0.2, 0.2)
       self._predictions["bbox_pred"] *= stds
       self._predictions["bbox_pred"] += means
     else:

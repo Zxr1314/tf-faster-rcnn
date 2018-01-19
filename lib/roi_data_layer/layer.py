@@ -54,7 +54,7 @@ class RoIDataLayer(object):
       inds = np.reshape(inds[row_perm, :], (-1,))
       self._perm = inds
     else:
-      self._perm = np.random.permutation(np.arange(len(self._roidb)))
+      self._perm = np.random.permutation(np.arange(len(self._roidb))) # return the index of the roidb [0:len(roidb)]
     # Restore the random state
     if self._random:
       np.random.set_state(st0)
@@ -69,7 +69,7 @@ class RoIDataLayer(object):
 
     db_inds = self._perm[self._cur:self._cur + cfg.TRAIN.IMS_PER_BATCH]
     self._cur += cfg.TRAIN.IMS_PER_BATCH
-
+    print(db_inds, self._cur, len(self._perm))
     return db_inds
 
   def _get_next_minibatch(self):
@@ -80,6 +80,7 @@ class RoIDataLayer(object):
     """
     db_inds = self._get_next_minibatch_inds()
     minibatch_db = [self._roidb[i] for i in db_inds]
+    assert (len(minibatch_db) > 0), 'the db_index is %d'%db_inds
     return get_minibatch(minibatch_db, self._num_classes)
       
   def forward(self):

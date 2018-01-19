@@ -117,7 +117,7 @@ class imdb(object):
       boxes[:, 2] = widths[i] - oldx1 - 1
       assert (boxes[:, 2] >= boxes[:, 0]).all()
       entry = {'boxes': boxes,
-               'gt_overlaps': self.roidb[i]['gt_overlaps'],
+               'gt_overlaps': self.roidb[i]['gt_overlaps'], # it does not matter because it is the gtbox .
                'gt_classes': self.roidb[i]['gt_classes'],
                'flipped': True}
       self.roidb.append(entry)

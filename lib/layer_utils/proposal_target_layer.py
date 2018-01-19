@@ -76,14 +76,14 @@ def _get_bbox_regression_labels(bbox_target_data, num_classes):
     start = int(4 * cls)
     end = start + 4
     bbox_targets[ind, start:end] = bbox_target_data[ind, 1:]
-    bbox_inside_weights[ind, start:end] = cfg.TRAIN.BBOX_INSIDE_WEIGHTS
+    bbox_inside_weights[ind, start:end] = cfg.TRAIN.BBOX_INSIDE_WEIGHTS   #__C.TRAIN.BBOX_INSIDE_WEIGHTS = (1.0, 1.0, 1.0, 1.0)
   return bbox_targets, bbox_inside_weights
 
 
 def _compute_targets(ex_rois, gt_rois, labels):
   """Compute bounding-box regression targets for an image."""
 
-  assert ex_rois.shape[0] == gt_rois.shape[0]
+  assert ex_rois.shape[0] == gt_rois.shape[0]  #confirm that the ex_rois and the gt_rois are the same shape[0],so as to compute the results from proposals to gt boxes.
   assert ex_rois.shape[1] == 4
   assert gt_rois.shape[1] == 4
 
